@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", function () {
         event.preventDefault();
 
         let singerName = document.getElementById("singer_name").value;
+        let singerActualName = await getArtistName(singerName);
 
         // Clear table rows
         tableBody.innerHTML = "";
@@ -25,10 +26,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     let cell1 = row.insertCell(0);
                     let cell2 = row.insertCell(1);
                     let cell3 = row.insertCell(2);
+                    let cell4 = row.insertCell(3);
 
                     cell1.textContent = releases.title;
-                    cell2.textContent = releases.date;
+                    cell2.textContent = singerActualName
                     cell3.textContent = releases.country;
+                    cell4.textContent = releases.date;
                 });
 
                 // Show the table container
@@ -37,8 +40,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    async function getArtistId(artistName) {
-        let apiUrl = `https://musicbrainz.org/ws/2/artist?query=${encodeURIComponent(artistName)}&limit=1&fmt=json`;
+    async function getArtistId(singerName) {
+        let apiUrl = `https://musicbrainz.org/ws/2/artist?query=${encodeURIComponent(singerName)}&limit=1&fmt=json`;
 
         try {
             let response = await fetch(apiUrl, {
@@ -62,15 +65,36 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    async function getArtistName(singerName) {
+        let apiUrl = `https://musicbrainz.org/ws/2/artist?query=${encodeURIComponent(singerName)}&limit=1&fmt=json`;
+
+        try {
+            let response = await fetch(apiUrl, {
+                headers: {
+                    "User-Agent": USER_AGENT
+                }
+            });
+            let data = await response.json();
+            if (data.artists && data.artists.length > 0) {
+                console.log(data.artists[0].name);
+                return data.artists[0].name;
+            } 
+        } catch (error) {
+            console.error("Error fetching artist data:", error);
+            showAlert("Well then, something went wrong, try again later!")
+            return null;
+        }
+    }
+
     async function getArtistReleases(artistId) {
-        let uniqueReleases = {}; // Object to store unique releases
-        let apiUrl = `https://musicbrainz.org/ws/2/release?artist=${artistId}&limit=100&offset=0&fmt=json`;
+        let allReleases = [];
+        let apiUrl = `https://musicbrainz.org/ws/2/release?artist=${artistId}&offset=0&fmt=json`;
     
         try {
             let currentPage = 0;
-            let totalPages = 1; // Start with 1 to ensure at least one loop iteration
+            let totalReleases = 0; // To keep track of the total releases fetched
     
-            while (currentPage < totalPages) {
+            while (true) {
                 let response = await fetch(apiUrl, {
                     headers: {
                         "User-Agent": USER_AGENT
@@ -79,29 +103,36 @@ document.addEventListener("DOMContentLoaded", function () {
     
                 let data = await response.json();
                 if (data.releases && data.releases.length > 0) {
-                    // Filter out releases with titles starting with "(" or "["
-                    let filteredReleases = data.releases.filter(release => 
-                        !/^[\(\[]/.test(release.title)
-                    );
-    
-                    // Add unique releases to the object
-                    filteredReleases.forEach(release => {
-                        if (!uniqueReleases[release.title]) {
-                            uniqueReleases[release.title] = release;
-                        }
-                    });
+                    allReleases = allReleases.concat(data.releases);
     
                     // Update pagination values
+                    totalReleases += data.releases.length;
                     currentPage++;
-                    totalPages = Math.ceil(data["release-count"] / data["release-group-count"]);
+    
+                    // Check if all releases have been fetched
+                    if (totalReleases >= data["release-count"]) {
+                        break;
+                    }
+    
+                    // Update the API URL for the next page
                     apiUrl = `https://musicbrainz.org/ws/2/release?artist=${artistId}&limit=100&offset=${currentPage * 100}&fmt=json`;
                 } else {
                     break; // No more releases to fetch
                 }
             }
     
-            // Convert the object values back to an array
-            return Object.values(uniqueReleases);
+            // Group releases by title
+            const groupedReleases = {};
+            allReleases.forEach(release => {
+                if (!groupedReleases[release.title]) {
+                    groupedReleases[release.title] = release;
+                }
+            });
+    
+            // Convert the grouped object back to an array
+            const uniqueReleases = Object.values(groupedReleases);
+    
+            return uniqueReleases;
         } catch (error) {
             console.error("Error fetching releases data:", error);
             showAlert("An error occurred while fetching releases data.");
@@ -109,7 +140,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
     
-
     function showAlert(message) {
         alert(message);
     }
