@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", function () {
     submitBtn.querySelector("span:not(.spinner-grow)").textContent = "Loading..."; // Change the button text
     spinnerIcon.classList.remove("d-none"); // Show the spinner icon
   
-    let artistName = document.getElementById("artist_name").value;
+    let artistName = document.getElementById("artistName").value;
     let artistActualName = await getArtistName(artistName);
 
     // Clear table rows
