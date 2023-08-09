@@ -15,14 +15,14 @@ document.addEventListener("DOMContentLoaded", function () {
     submitBtn.querySelector("span:not(.spinner-grow)").textContent = "Loading..."; // Change the button text
     spinnerIcon.classList.remove("d-none"); // Show the spinner icon
   
-    let singerName = document.getElementById("singer_name").value;
-    let singerActualName = await getArtistName(singerName);
+    let artistName = document.getElementById("artist_name").value;
+    let artistActualName = await getArtistName(artistName);
 
     // Clear table rows
     tableBody.innerHTML = "";
 
     // Fetch artist data from MusicBrainz API
-    let artistId = await getArtistId(singerName);
+    let artistId = await getArtistId(artistName);
     if (artistId) {
       let releases = await getArtistReleases(artistId);
       if (releases) {
@@ -38,7 +38,7 @@ document.addEventListener("DOMContentLoaded", function () {
           let cell4 = row.insertCell(3);
 
           cell1.textContent = releases.title;
-          cell2.textContent = singerActualName;
+          cell2.textContent = artistActualName;
           cell3.textContent = releases.country;
           cell4.textContent = releases.date;
         });
@@ -53,9 +53,9 @@ document.addEventListener("DOMContentLoaded", function () {
     spinnerIcon.classList.add("d-none"); // Hide the spinner icon
   });
 
-  async function getArtistId(singerName) {
+  async function getArtistId(artistName) {
     let apiUrl = `https://musicbrainz.org/ws/2/artist?query=${encodeURIComponent(
-      singerName
+      artistName
     )}&limit=1&fmt=json`;
 
     try {
@@ -80,9 +80,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  async function getArtistName(singerName) {
+  async function getArtistName(artistName) {
     let apiUrl = `https://musicbrainz.org/ws/2/artist?query=${encodeURIComponent(
-      singerName
+      artistName
     )}&limit=1&fmt=json`;
 
     try {
